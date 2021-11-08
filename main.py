@@ -1,5 +1,6 @@
 from src.graph_selector import GraphSelector
 from src.graph_parser import GraphParser
+from src.graph import Graph
 
 if __name__ == "__main__":
     print("Bienvenue !")
