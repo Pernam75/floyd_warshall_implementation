@@ -9,15 +9,12 @@ floyd_warshall_implementation is as its name indicates an implementation of the 
 1. Go to project folder
 2. Run main.py
 
-## Notes
-
-### Done
+### Features
 
 - Add reading a graph from a file
-
-### Not Done
-
 - Add graph printing
 - Implement Floyd-Warshall algorithm
 - Add detection of absorbing circuit
 - Add main process
+
+
