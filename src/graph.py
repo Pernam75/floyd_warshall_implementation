@@ -23,7 +23,7 @@ class Graph:
 
         self.__nb_nodes = nb_nodes
         self.__nb_edges = nb_edges
-        self.__adj_matrix = [[inf for _ in range(self.__nb_nodes)] for _ in range(self.__nb_nodes)]
+        self.__adj_matrix = [[0 if i == j else inf for i in range(self.__nb_nodes)] for j in range(self.__nb_nodes)]
 
         # start node and end node in each edge should have node id between 0 and nb_nodes - 1
         for edge in edges:
@@ -72,19 +72,18 @@ class Graph:
         if self.__nb_edges <= 0:
             raise ValueError
 
-        dist, prev = [[0 for _ in range(self.__nb_nodes)] for _ in range(self.__nb_nodes)], [
-            [0 for _ in range(self.__nb_nodes)] for _ in range(self.__nb_nodes)]
-
         # initialization : in this step we set dist and prev by visiting direct paths given by adjacency matrix.
-        for i in range(self.__nb_nodes):
-            for j in range(self.__nb_nodes):
-                dist[i][j] = self.__adj_matrix[i][j]
-                prev[i][j] = i
+        dist, prev = [[self.__adj_matrix[i][j] for j in range(self.__nb_nodes)] for i in range(self.__nb_nodes)], [
+            [i for _ in range(self.__nb_nodes)] for i in range(self.__nb_nodes)]
 
-        for i in range(self.__nb_nodes):
-            # we set dist[i][i] to 0 because there isn't distance between the node and itself.
-            if dist[i][i] > 0:
-                dist[i][i] = 0
+        floyd_warshall_logs = ""
+        floyd_warshall_logs += "Initialisation:\n" + "L :\n"
+        floyd_warshall_logs += self.display_matrix(dist)
+
+        floyd_warshall_logs += "\n P :\n"
+        floyd_warshall_logs += self.display_matrix(prev)
+
+        floyd_warshall_logs += "\n\n"
 
         # iterations : in this step we set dist and prev by visiting paths passing through node k.
         for k in range(0, self.__nb_nodes):
@@ -95,8 +94,17 @@ class Graph:
                         dist[i][j] = dist[i][k] + dist[k][j]
                         # we also change the predecessor.
                         prev[i][j] = prev[k][j]
+
+            floyd_warshall_logs += "Itération n°{}:".format(k + 1) + "\n" + "L :\n"
+            floyd_warshall_logs += self.display_matrix(dist)
+
+            floyd_warshall_logs += "\n P :\n"
+            floyd_warshall_logs += self.display_matrix(prev)
+
+            floyd_warshall_logs += "\n\n"
+
         dist, prev, have_negative_cycle = self.__detect_negative_cycle(dist, prev)
-        return dist, prev, have_negative_cycle
+        return dist, prev, have_negative_cycle, floyd_warshall_logs
 
     def __detect_negative_cycle(self, dist, prev):
         have_negative_cycle = False
@@ -134,22 +142,69 @@ class Graph:
 
         # if distance between nodes is infinity (no link between them) => no path
         if graph_dist_matrix[start_node_id][end_node_id] == inf:
-            return ""
+            return "Pas de chemin."
+
+        path_dist = graph_dist_matrix[start_node_id][end_node_id]
 
         path = str(end_node_id)
         while end_node_id != start_node_id:
             end_node_id = graph_previous_matrix[start_node_id][end_node_id]
             path = str(end_node_id) + "->" + path
 
-        return path
+        return path + " (" + str(path_dist) + ")"
 
-    def display_paths(self):
+    def get_paths(self, prev, dist):
         """
-        Display the shortest path beetween every pair of node
-        :return: none
+        Get the shortest path beetween every pair of node
+        :return: paths list
         """
-        dist, prev, have_negative_cycle = self.floyd_warshall()
-        for i in range (0, self.__nb_nodes):
-            for j in range (0, self.__nb_nodes):
+        if prev is None or dist is None:
+            raise ValueError
+
+        paths = ""
+        for i in range(0, self.__nb_nodes):
+            for j in range(0, self.__nb_nodes):
                 if i != j:
-                    print("Chemin le plus court entre "+str(i)+" et "+str(j)+" : "+str(self.get_path(i, j, prev, dist)))
+                    paths += "Chemin le plus court entre " + str(i) + " et " + str(j) + " : " + str(
+                        self.get_path(i, j, prev, dist)) + "\n"
+
+        return paths
+
+    def display_matrix(self, graph_matrix):
+        """
+        Display graph matrix either dist, prev or adjacency matrix.
+        :param graph_matrix: the matrix to print.
+        :type graph_matrix: list(list(int))
+        """
+        # max_number_length is the length of the largest number (including - for negative numbers in number length)
+        max_number_length = max(max(x) for x in
+                                [[len(number) for number in list(map(str, row))] for row in graph_matrix])
+        max_number_length = max(max_number_length, len(str(self.__nb_nodes)) - 1)
+
+        # first we print the list of nodes
+        matrix_representation = "    "
+        for node_id in range(self.__nb_nodes):
+            # we print " " * (max_number_length - len(str(node_id)))
+            # in order to align display according to the largest number
+            matrix_representation += " " * (max_number_length - len(str(node_id)))
+            matrix_representation += " {}".format(node_id)
+        matrix_representation += "\n"
+
+        # then we print the dashes
+        matrix_representation += "    "
+        for node_id in range(self.__nb_nodes):
+            matrix_representation += "-" * (max_number_length + 1)
+        matrix_representation += "\n"
+
+        # finally, we print the adj matrix rows
+        for starting_node in range(self.__nb_nodes):
+            # we print the starting node
+            matrix_representation += " {} |".format(starting_node)
+            for ending_node in range(self.__nb_nodes):
+                # here we print the weighs of the links between the starting node and the ending node
+                # we print " " * (max_number_length - len(str(self.__adj_matrix[row][column])))
+                # in order to align display according to the largest number
+                matrix_representation += " " * (max_number_length - len(str(graph_matrix[starting_node][ending_node])))
+                matrix_representation += " {}".format(graph_matrix[starting_node][ending_node])
+            matrix_representation += "\n"
+        return matrix_representation
